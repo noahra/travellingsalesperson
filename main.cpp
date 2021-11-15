@@ -44,6 +44,7 @@ public:
     void nearestNeighbour() {
 
 
+        double totalDistance = 0;
         bool used[1000] = {false};
 
         tour[0] = 0;
@@ -59,17 +60,71 @@ public:
                     bestDistance = m_matrix[tour[i - 1]][j];
                 }
             }
+
+            totalDistance = totalDistance + bestDistance;
             tour[i] = best;
             used[best] = true;
 
         }
     }
 
-    void optimization() {
+    double calculateDistanceInPath(int tours[]) {
 
+        double totalDistance = 0;
+
+        for (int i = 0; i < sizeof(tours); i++) {
+            totalDistance = totalDistance + m_matrix[i][tours[i]];
+
+        }
+
+        return totalDistance;
+
+    }
+
+    std::vector<int> twoOptSwap(int tours[], int edge1, int edge2) {
+
+        std::vector<int> newTour;
+
+        for (int i = 0; i < edge1 - 1; i++) {
+            newTour[i] = tours[i];
+        }
+        newTour[edge1] = tours[edge2];
+        newTour[edge2] = tours[edge1];
+
+        for (int i = edge2 + 1; i < sizeof(tours); i++) {
+            newTour[i] = tours[i];
+        }
+
+        return newTour;
 
 
     }
+
+
+    std::vector<int> optimization(int tours[]) {
+        double bestDistance = calculateDistanceInPath(tours);
+        bool improvement = true;
+
+        startAgain:
+        for (int i = 1; i < sizeof(tours); i++) {
+            for (int j = i + 1; i < sizeof(tours); i++) {
+
+                std::vector<int> newTourVector = twoOptSwap(tours, i, j);
+                int *newTour = &newTourVector[0];
+                double newDistance = calculateDistanceInPath(newTour);
+                if (newDistance < bestDistance) {
+                    bestDistance = newDistance;
+                    goto startAgain;
+
+                }
+
+
+            }
+        }
+
+
+    }
+
 
 private:
     double m_matrix[1000][1000];
@@ -85,8 +140,10 @@ int main() {
     auto input = readInput();
     Tsp *myTsp = new Tsp(input);
     myTsp->nearestNeighbour();
+    std::vector<int> bestDistanceVector = myTsp->optimization(myTsp->tour);
+    int* a = &bestDistanceVector[0];
     for (int i = 0; i < input.size(); i++) {
-        std::cout << myTsp->tour[i] << std::endl;
+        std::cout << a[i] << std::endl;
     }
 
 
