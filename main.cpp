@@ -1,6 +1,9 @@
 #include <iostream>
 #include <vector>
 #include <math.h>
+#include <algorithm>
+#include <chrono>
+#include <random>
 
 std::vector<std::pair<double, double> > readInput() {
     int i = 0, count = 0;
@@ -39,15 +42,12 @@ public:
         }
     }
 
-    int tour[1000];
+    std::vector<int> tour;
 
     void nearestNeighbour() {
+        bool used[1000] = { false };
 
-
-        double totalDistance = 0;
-        bool used[1000] = {false};
-
-        tour[0] = 0;
+        tour.push_back(0);
         used[0] = true;
 
 
@@ -60,75 +60,68 @@ public:
                     bestDistance = m_matrix[tour[i - 1]][j];
                 }
             }
-
-            totalDistance = totalDistance + bestDistance;
-            tour[i] = best;
+            tour.push_back(best);
             used[best] = true;
-
         }
     }
 
-    double calculateDistanceInPath(int tours[]) {
-
+    double calculateDistanceInPath(std::vector<int> tour)
+    {
         double totalDistance = 0;
-
-        for (int i = 0; i < sizeof(tours); i++) {
-            totalDistance = totalDistance + m_matrix[i][tours[i]];
-
-        }
+        for (int i = 1; i < tour.size(); i++)
+            totalDistance += m_matrix[tour[i - 1]][tour[i]];
 
         return totalDistance;
-
     }
 
-    int* twoOptSwap(int tours[], int edge1, int edge2) {
-
-
-        int* newTour = new int[1000];
-
-        for (int i = 0; i < edge1 - 1; i++) {
-            newTour[i] = tours[i];
-        }
-        newTour[edge1] = tours[edge2];
-        newTour[edge2] = tours[edge1];
-
-        for (int i = edge2 + 1; i < sizeof(tours); i++) {
-            newTour[i] = tours[i];
-        }
-
+    std::vector<int> twoOptSwap(int start, int end)
+    {
+        std::vector<int> newTour(tour.size());
+        std::copy(tour.begin(), tour.end(), newTour.begin());
+        std::reverse(newTour.begin() + start, newTour.begin() + end);
         return newTour;
-
-
     }
 
-
-    int* optimization(int tours[]) {
-        double bestDistance = calculateDistanceInPath(tours);
-        startAgain:
-        int* newTourArray = new int[1000];
-        for (int i = 0; i < sizeof(tours); i++) {
-            for (int j = i + 1; i < sizeof(tours); i++) {
-
-
-
-                int *a = twoOptSwap(tours, i, j);
-                for (int i = 0; i<1000;i++) {
-                    newTourArray[i] = *a;
-                    a++;
+    void twoOpt(std::chrono::steady_clock::time_point startTime)
+    {
+        int swaps = 1;
+        double bestDist = calculateDistanceInPath(tour);
+        while (swaps != 0)
+        {
+            swaps = 0;
+            for (int i = 0; i < m_points.size(); ++i)
+            {
+                std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+                int ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
+                if (ms > 1000)
+                    break;
+                for (int k = i + 1; k <= m_points.size(); ++k)
+                {
+                    auto newTour = twoOptSwap(i, k);
+                    double newDist = calculateDistanceInPath(newTour);
+                    if (newDist < bestDist)
+                    {
+                        bestDist = newDist;
+                        tour = newTour;
+                        ++swaps;
+                    }
                 }
-                double newDistance = calculateDistanceInPath(newTourArray);
-                if (newDistance < bestDistance) {
-                    bestDistance = newDistance;
-                    goto startAgain;
-
-                }
-
-
             }
         }
-        return newTourArray;
     }
 
+    void anneal()
+    {
+        std::random_device rd;  
+        std::mt19937 gen(rd()); 
+        std::uniform_int_distribution<> distrib(0, m_points.size() - 1);
+        for (int i = 0; i < 10; ++i)
+        {
+            int a = distrib(gen);
+            int b = distrib(gen);
+            a > b ? twoOptSwap(b, a) : twoOptSwap(a, b);
+        }
+    }
 
 private:
     double m_matrix[1000][1000];
@@ -139,18 +132,25 @@ private:
 
 
 int main() {
-
+    std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
 
     auto input = readInput();
-    Tsp *myTsp = new Tsp(input);
-    myTsp->nearestNeighbour();
-    int* bestDistanceVector = myTsp->optimization(myTsp->tour);
-    for (int i = 0; i < input.size(); i++) {
-        std::cout << bestDistanceVector[i] << std::endl;
-    }
+    Tsp* myTsp = new Tsp(input);
 
+    myTsp->nearestNeighbour();
+
+    /*for (int i = 0; i < input.size(); i++) {
+        std::cout << myTsp->tour[i] << std::endl;
+    }*/
+
+    myTsp->twoOpt(startTime);
+    myTsp->anneal();
+    myTsp->twoOpt(startTime);
+
+    for (int i = 0; i < input.size(); i++) {
+        std::cout << myTsp->tour[i] << std::endl;
+    }
+    //std::cout << myTsp->calculateDistanceInPath(myTsp->tour);
 
     return 0;
-
-
 }
