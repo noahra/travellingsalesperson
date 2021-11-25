@@ -94,7 +94,7 @@ public:
                 std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
                 int ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
                 if (ms > 1000)
-                    break;
+                    return;
                 for (int k = i + 1; k <= m_points.size(); ++k)
                 {
                     auto newTour = twoOptSwap(i, k);
@@ -138,10 +138,10 @@ public:
             return -d0 + d4;
         }
         else if(d0 > d3){
-            std::vector<int> tmp(k-j + j-i);
+            std::vector<int> tmp((k-j) + (j-i));
             std::copy(tour.begin() + j, tour.begin() + k, tmp.begin());
-            std::copy(tour.begin() + i ,tour.begin() + k,tmp.end());
-            std::copy(tmp.begin(),tmp.end(),tour.begin()+i);
+            std::copy(tour.begin() + i ,tour.begin() + j,tmp.begin() + (k-j-1));
+            std::copy(tmp.begin(),tmp.end(),tour.begin() + i);
             return -d0 + d3;
         }
         return 0;
@@ -149,24 +149,21 @@ public:
 
     void threeOpt(std::chrono::steady_clock::time_point startTime){
         int n = tour.size();
-
-
-
         while(true){
             double delta = 0;
-            for(int i = 0; i < n; ++i){
-                for(int j = i + 2; j < n ; ++j){
-                    for(int k = j + 2; k < n; ++k){
-                        if(i!=0)
+            for(int i = 1; i < n; ++i){
+                for(int j = i + 1; j < n ; ++j){
+                    for(int k = j + 2; k < n + i; ++k){
+                        if(k<tour.size() && j< tour.size())
+
                             delta += reverseSegmentIfBetter(i,j,k);
                         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
                         int ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
-                        if (ms > 1500)
-                            break;
+                        if (ms > 1900)
+                            return;
                     }
                 }
             }
-
             if (delta >=0)
                 break;
         }
@@ -199,19 +196,21 @@ int main() {
 
     myTsp->nearestNeighbour();
 
-    /*for (int i = 0; i < input.size(); i++) {
+    /*
+     for (int i = 0; i < input.size(); i++) {
         std::cout << myTsp->tour[i] << std::endl;
     }
+    */
 
-    myTsp->twoOpt(startTime);
-    myTsp->anneal();
+    //myTsp->twoOpt(startTime);
+    //myTsp->anneal();
 
-    myTsp->twoOpt(startTime);
-*/
+    //myTsp->twoOpt(startTime);
     myTsp -> threeOpt(startTime);
     for (int i = 0; i < input.size(); i++) {
         std::cout << myTsp->tour[i] << std::endl;
     }
+
     //std::cout << myTsp->calculateDistanceInPath(myTsp->tour);
 
     return 0;
