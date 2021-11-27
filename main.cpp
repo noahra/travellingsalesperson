@@ -94,7 +94,7 @@ public:
                 std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
                 int ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
                 if (ms > 1000)
-                    return;
+                    break;
                 for (int k = i + 1; k <= m_points.size(); ++k)
                 {
                     auto newTour = twoOptSwap(i, k);
@@ -140,7 +140,7 @@ public:
         else if(d0 > d3){
             std::vector<int> tmp((k-j) + (j-i));
             std::copy(tour.begin() + j, tour.begin() + k, tmp.begin());
-            std::copy(tour.begin() + i ,tour.begin() + j,tmp.begin() + (k-j-1));
+            std::copy(tour.begin() + i ,tour.begin() + j,tmp.begin() + (k-j));
             std::copy(tmp.begin(),tmp.end(),tour.begin() + i);
             return -d0 + d3;
         }
@@ -151,15 +151,16 @@ public:
         int n = tour.size();
         while(true){
             double delta = 0;
-            for(int i = 1; i < n; ++i){
-                for(int j = i + 1; j < n ; ++j){
+            for(int i = 0; i < n; ++i){
+                for(int j = i + 2; j < n ; ++j){
                     for(int k = j + 2; k < n + i; ++k){
-                        if(k<tour.size() && j< tour.size())
+                        if(k<tour.size() && j< tour.size() && i!=0)
 
                             delta += reverseSegmentIfBetter(i,j,k);
+
                         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
                         int ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
-                        if (ms > 1900)
+                        if (ms > 1950)
                             return;
                     }
                 }
