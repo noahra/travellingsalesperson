@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
-#include <tuple>
-#include <math.h>
+#include <numeric>      // std::iota
 #include <algorithm>
+#include <math.h>
 #include <chrono>
 #include <random>
 
@@ -35,9 +35,59 @@ public:
 
     Tsp(std::vector<std::pair<double, double>> points) {// Access specifier
         m_points = points;
+        min_link = 0;
+        max_link = 0;
+        //Vector used to store and sort neighbours for each node in TSP AKA neighbor "Matrix"
+        std::vector<double> test(tour.size());
+        test.clear();
+
         for (int i = 0; i < points.size(); i++) {
             for (int j = 0; j < points.size(); j++) {
                 m_matrix[i][j] = distanceCalculate(points[i], points[j]);
+                test.push_back(m_matrix[i][j]);
+                if(m_matrix[i][j] < min_link)
+                    min_link = m_matrix[i][j];
+                if(m_matrix[i][j] > max_link)
+                    max_link = m_matrix[i][j];
+            }
+            m_closest_neighbour[i] = sort_indexes(test);
+            test.clear();
+        }
+    }
+
+    //creates a vector of indicies of nodes in m_points that are closest to a node. Used in TSP  constructor.
+    static std::vector<int> sort_indexes(const std::vector<double>& v){
+        std::vector<int> idx(v.size());
+        std::iota(idx.begin(), idx.end(), 0);
+        std::stable_sort(idx.begin(),idx.end(),[v](double i1, double i2){
+            return v[i1] < v[i2];
+        });
+        return idx;
+    }
+
+    void fast_two_opt(std::chrono::steady_clock::time_point startTime){
+        double bestDist = calculateDistanceInPath(tour);
+        int n = tour.size();
+        for(int n_1 = 0; n_1 < n; ++n_1){
+            int m_1 = ( n_1  - 1 + n ) % n;
+            for (int j_2 = 0; j_2 < n-1; ++j_2){
+                int c_2 = m_closest_neighbour[n_1][j_2];
+                int n_2 = m_cities[c_2];
+                int m_2 = (n_2 - 1 - n) % n;
+                if(m_matrix[tour[n_1]][tour[n_2]] + min_link > m_matrix[tour[m_1]][tour[n_1]] + max_link){
+                    break;
+                }
+                auto newTour = twoOptSwap(n_1, m_2);
+                double newDist = calculateDistanceInPath(newTour);
+                if (newDist < bestDist) {
+                    bestDist = newDist;
+                    tour = newTour;
+                    break;
+                }
+                std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+                int ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
+                if (ms > 1950)
+                    return;
             }
         }
     }
@@ -46,10 +96,8 @@ public:
 
     void nearestNeighbour() {
         bool used[1000] = { false };
-
         tour.push_back(0);
         used[0] = true;
-
 
         for (int i = 1; i < m_points.size(); i++) {
             int best = -1;
@@ -57,9 +105,11 @@ public:
             for (int j = 0; j < m_points.size(); j++) {
                 if (!used[j] && m_matrix[tour[i - 1]][j] < bestDistance) {
                     best = j;
+                    m_cities[i]=j;
                     bestDistance = m_matrix[tour[i - 1]][j];
                 }
             }
+
             tour.push_back(best);
             used[best] = true;
         }
@@ -76,9 +126,20 @@ public:
 
     std::vector<int> twoOptSwap(int start, int end)
     {
+        int s = start;
+        int e = end;
         std::vector<int> newTour(tour.size());
         std::copy(tour.begin(), tour.end(), newTour.begin());
         std::reverse(newTour.begin() + start, newTour.begin() + end);
+
+        while(s < e){
+            int temp = m_cities[s];
+            m_cities[s] = m_cities[e];
+            m_cities[e] = temp;
+            ++s;
+            --e;
+        }
+
         return newTour;
     }
 
@@ -109,6 +170,7 @@ public:
             }
         }
     }
+
 
     double reverseSegmentIfBetter(int i, int j, int k){
 
@@ -184,7 +246,11 @@ public:
     }
 
 private:
+    double max_link;
+    double min_link;
     double m_matrix[1000][1000];
+    std::vector<int> m_closest_neighbour[1000];
+    int m_cities[1000];
     std::vector<std::pair<double, double>> m_points;
 };
 
@@ -196,18 +262,18 @@ int main() {
     Tsp* myTsp = new Tsp(input);
 
     myTsp->nearestNeighbour();
+    for(int j = 0; j<myTsp->tour.size();++j)
+        /*
+         for (int i = 0; i < input.size(); i++) {
+            std::cout << myTsp->tour[i] << std::endl;
+        }
+        */
 
-    /*
-     for (int i = 0; i < input.size(); i++) {
-        std::cout << myTsp->tour[i] << std::endl;
-    }
-    */
+        //myTsp->twoOpt(startTime);
+        //myTsp->anneal();
 
-    //myTsp->twoOpt(startTime);
-    //myTsp->anneal();
-
-    //myTsp->twoOpt(startTime);
-    myTsp -> threeOpt(startTime);
+        myTsp->fast_two_opt(startTime);
+    //myTsp -> threeOpt(startTime);
     for (int i = 0; i < input.size(); i++) {
         std::cout << myTsp->tour[i] << std::endl;
     }
