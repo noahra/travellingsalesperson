@@ -92,6 +92,38 @@ public:
         }
     }
 
+    void fast_three_opt(std::chrono::steady_clock::time_point startTime){
+        double bestDist = calculateDistanceInPath(tour);
+        double delta = 0;
+        int n = tour.size();
+        for(int n_1 = 1; n_1 < n; ++n_1){
+            int m_1 = (n_1 - 1 + n) % n;
+            for(int j_2 = 1; j_2 < n-1; ++j_2){
+                int c_2 = m_closest_neighbour[m_1][j_2];
+                int n_2 = m_cities[c_2];
+                int m_2 = (n_2 - 1 + n) % n;
+                if(m_matrix[tour[m_1]][tour[n_1]] + 2*min_link > m_matrix[tour[m_1]][tour[n_1]] + 2*max_link)
+                    break;
+                if(m_matrix[tour[m_1]][tour[n_2]] + 2*min_link > m_matrix[tour[m_1]][tour[n_1]]+  m_matrix[tour[m_2]][tour[n_2]] + max_link)
+                    continue;
+                for(int j_3 = 1; j_3 < n-1; ++j_3 ){
+                    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+                    int ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
+                    //if (ms > 1950)
+                    //  return;
+                    int c_3 = m_closest_neighbour[n-1][j_3];
+                    int n_3 = m_cities[c_3];
+                    if(m_matrix[tour[m_1]][tour[n_2]] +m_matrix[tour[n_1]][tour[n_3]] + min_link > m_matrix[tour[m_1]][tour[n_1]] + m_matrix[tour[m_2]][tour[n_2]] + max_link)
+                        break;
+
+                    delta += reverseSegmentIfBetter(n_1,j_2,j_3);
+                    if (delta >=0)
+                        break;
+                }
+            }
+        }
+    }
+
     std::vector<int> tour;
 
     void nearestNeighbour() {
@@ -189,14 +221,35 @@ public:
 
         if (d0 > d1){
             std::reverse(tour.begin()+ i,tour.begin() + j);
+            while(i < j){
+                int temp = m_cities[i];
+                m_cities[i] = m_cities[j];
+                m_cities[j] = temp;
+                ++i;
+                --j;
+            }
             return -d0 + d1;
         }
         else if(d0 > d2){
             std::reverse(tour.begin()+ j,tour.begin() + k);
+            while(j < k){
+                int temp = m_cities[j];
+                m_cities[j] = m_cities[k];
+                m_cities[k] = temp;
+                ++j;
+                --k;
+            }
             return -d0 + d2;
         }
         else if(d0 > d4){
             std::reverse(tour.begin()+ i,tour.begin() + k);
+            while(i < k){
+                int temp = m_cities[i];
+                m_cities[i] = m_cities[k];
+                m_cities[k] = temp;
+                ++i;
+                --k;
+            }
             return -d0 + d4;
         }
         else if(d0 > d3){
@@ -204,6 +257,8 @@ public:
             std::copy(tour.begin() + j, tour.begin() + k, tmp.begin());
             std::copy(tour.begin() + i ,tour.begin() + j,tmp.begin() + (k-j));
             std::copy(tmp.begin(),tmp.end(),tour.begin() + i);
+            for(int num = i; i < k; ++i)
+                m_cities[num] = tour[num];
             return -d0 + d3;
         }
         return 0;
@@ -272,8 +327,10 @@ int main() {
         //myTsp->twoOpt(startTime);
         //myTsp->anneal();
 
-        myTsp->fast_two_opt(startTime);
-    //myTsp -> threeOpt(startTime);
+        //myTsp->fast_two_opt(startTime);
+        //myTsp -> threeOpt(startTime);
+        myTsp->fast_three_opt(startTime);
+
     for (int i = 0; i < input.size(); i++) {
         std::cout << myTsp->tour[i] << std::endl;
     }
