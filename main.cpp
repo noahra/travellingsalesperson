@@ -84,7 +84,7 @@ public:
                     int n_2 = m_cities[c_2];
                     int m_2 = mod(n_2 - 1 - n, n);
 
-                    if (n_1 == n_2 || m_2 == m_2)
+                    if (n_1 == n_2 || m_1 == m_2)
                         break;
 
                     if (m_matrix[tour[n_1]][tour[n_2]] + min_link > m_matrix[tour[m_1]][tour[n_1]] + max_link) 
